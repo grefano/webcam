@@ -201,11 +201,15 @@ if __name__ == '__main__':
             pointBochecha = getPointPos(idBochecha)
             pointBochechaR = getPointPos(365)
 
-            faceHeight = abs(pointQueixo[1]-pointTestaCima[1])
-            faceWidth = abs(pointBochechaR[0]-pointBochecha[0])
+            faceHeight = np.sqrt((pointTestaCima[1]-pointQueixo[1])**2 + (pointQueixo[0]-pointTestaCima[0])**2)#abs(pointQueixo[1]-pointTestaCima[1])
+            faceWidth = np.sqrt((pointBochechaR[1]-pointBochecha[1])**2 + (pointBochecha[0]-pointBochechaR[0])**2)#abs(pointBochechaR[0]-pointBochecha[0])
+            cv2.circle(imgConfig,pointQueixo,0,(200,200,0), 10)
+            cv2.circle(imgConfig,pointTestaCima,0,(200,200,0), 10)
+            cv2.circle(imgConfig,pointBochecha,0,(200,200,0), 10)
+            cv2.circle(imgConfig,pointBochechaR,0,(200,200,0), 10)
             # faceDir = -np.arctan2(int(pointQueixo[1]-pointTestaCima[1]), int(pointQueixo[0]-pointTestaCima[0]))
-            faceDir = np.arctan2(int(pointQueixo[0]-pointTestaCima[0]), int(pointQueixo[1]-pointTestaCima[1]))
-            print(f"face dir {faceDir / np.pi * 180}")
+            faceDir = np.arctan2(int(pointTestaCima[0]-pointQueixo[0]), int(pointQueixo[1]-pointTestaCima[1]))
+            print(f"face w {faceWidth}")
             def getPointNewPos(id: int):
                 x, y = getPointPos(id)
                 # cv2.circle(imgConfig, (x, y), 2, (0, 0, 255), 2)
@@ -213,25 +217,31 @@ if __name__ == '__main__':
                 newytrans = y-pointQueixo[1]
                 
                 
-                cosdir = np.cos(faceDir)
-                sindir = np.sin(faceDir)
+                cosdir = np.cos(-faceDir)
+                sindir = np.sin(-faceDir)
 
                 newxrot = newxtrans * cosdir - newytrans * sindir
                 newyrot = newxtrans * sindir + newytrans * cosdir
                 
-                newxnorm = newxrot / faceWidth
-                newynorm = newyrot / faceHeight
+
+                div = H
+                newxnorm = newxrot / (faceHeight) #div / (faceHeight/H)#
+                newynorm = newyrot / (faceHeight)
                 
                 newx = newxnorm
                 newy = newynorm
 
-                cv2.circle(imgConfig, (int(pointQueixo[0]+newx*faceWidth), int(pointQueixo[1]+newy*faceHeight)), 2, (0, 0, 255), 2)
+                cv2.circle(imgConfig, (int(pointQueixo[0]+newxnorm*240), int(pointQueixo[1]+newynorm*240)), 2, (0, 0, 255), 2)
 
-                return int(size/2 + newx*5*faceWidth), int(size + newy*5*faceHeight)
+                mult = size
+
+                return int(size/2 + newxnorm*mult), int(size + newynorm*mult)
 
             idSee += .12
             # print(f"id see {idSee}")
-            cv2.circle(imgConfig, getPointPos(int(idSee)), 2, (0, 0, 255), 2)
+            # cv2.circle(imgConfig, getPointPos(int(idSee)), 2, (0, 0, 255), 2)
+
+            cv2.line(imgConfig, pointQueixo, (int(pointQueixo[0]+np.sin(faceDir)*faceHeight), int(pointQueixo[1]+np.cos(faceDir)*faceHeight)), (0,0,0), 5)
             # pointOlhoLCima = getPointPos(idOlhoLCima)
             # pointOlhoLBaixo = getPointPos(idOlhoLBaixo)
             # pointOlhoRCima = getPointPos(idOlhoRCima)
@@ -314,14 +324,14 @@ if __name__ == '__main__':
             # drawCircle(pointOlhoLBaixo)
             olhoRadius = 2
             olhoLRadius = abs(pointOlhoLBaixo[1]-pointOlhoLCima[1])
-            if olhoLRadius > 50:
+            if olhoLRadius > 20:
                 drawCircle((int((pointOlhoLCima[0]+pointOlhoLBaixo[0])/2), int((pointOlhoLCima[1]+pointOlhoLBaixo[1])/2)), olhoLRadius*olhoRadius)
             else:
                 cv2.line(imgPreview, pointOlhoLEsquerda, pointOlhoLDireita, (0, 0, 0), 10)
             # drawCircle(pointOlhoRCima)
             # drawCircle(pointOlhoRBaixo)
             olhoRRadius = abs(pointOlhoRBaixo[1]-pointOlhoRCima[1])
-            if olhoRRadius > 50:
+            if olhoRRadius > 20:
                 drawCircle((int((pointOlhoRCima[0]+pointOlhoRBaixo[0])/2), int((pointOlhoRCima[1]+pointOlhoRBaixo[1])/2)), olhoRRadius*olhoRadius)
             else:
                 pass
@@ -330,7 +340,7 @@ if __name__ == '__main__':
 
             bocaPointMiddle = (int((pointBocaR[0]+pointBocaL[0])/2), int((pointBocaD[1]+pointBocaU[1])/2))
             bocaRadius = abs(pointBocaD[1]-pointBocaU[1])
-            if bocaRadius > 130:
+            if bocaRadius > 100:
                 drawCircle(bocaPointMiddle, bocaRadius)
             else:
                 cv2.line(imgPreview, pointBocaL, pointBocaR, (0,0,0), 20)
@@ -366,6 +376,7 @@ if __name__ == '__main__':
 
             cv2.imshow("preview", imgPreview)
             cv2.putText(imgConfig, f"faceDir {faceDir/np.pi*180}", (20, 20), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0))
+            cv2.putText(imgConfig, f"face {faceWidth+faceHeight}", (20, 50), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0))
         cv2.imshow("config", imgConfig)
         
         # cv2.setMouseCallback("config", ConfigOnMouse)
