@@ -110,7 +110,7 @@ if __name__ == '__main__':
     faces_landmarks = []
     previousTime = 0    
 
-    frameCount = 0
+    idSee = 180
     while True:
         
         
@@ -154,6 +154,28 @@ if __name__ == '__main__':
         size = 1000
         # points = [284, 54, 211, 431]
         points = [104, 333, 430, 135]
+        idQueixo = 152
+        idBochecha = 192
+        idTestaCima = 10
+        idTestaBaixo = 104
+
+        idOlhoLCima = 159
+        idOlhoLBaixo = 23
+        idOlhoLEsquerda = 130
+        idOlhoLDireita = 173
+        idOlhoRCima = 386
+        idOlhoRBaixo = 253
+        idOlhoRDireita = 359
+        idOlhoREsquerda = 463
+
+        idBocaL = 291#320#57
+        idBocaR = 61#409#287
+        idBocaU = 0
+        idBocaD = 17
+
+
+        # points = 
+
         if faces_landmarks:
             for faceLandmarks in faces_landmarks:
                 # detector.mpDraw.draw_landmarks(
@@ -170,25 +192,187 @@ if __name__ == '__main__':
                     cv2.putText(imgConfig, str(id), (x, y), cv2.FONT_HERSHEY_PLAIN, 0.5, color, 1)
         
         if faces_landmarks != None:
-            srcPoints = np.array([detector.getPointPositionById(i, faces_landmarks[0], imgWebcam) for i in points], dtype=np.float32)
-            dstPoints = np.array([
-                [0, 0],
-                [size-1, 0],
-                [size-1, size-1],
-                [0, size-1]
-            ])
+            def getPointPos(id: int):
+                return detector.getPointPositionById(id, faces_landmarks[0], imgWebcam)
 
-            M, mask = cv2.findHomography(srcPoints, dstPoints, method=0)
-            imgPreview = cv2.warpPerspective(imgWebcam, M, (size, size))
+            pointQueixo = getPointPos(idQueixo)
+            pointTestaCima = getPointPos(idTestaCima)
+            pointTestaBaixo = getPointPos(idTestaBaixo)
+            pointBochecha = getPointPos(idBochecha)
+            pointBochechaR = getPointPos(365)
+
+            faceHeight = abs(pointQueixo[1]-pointTestaCima[1])
+            faceWidth = abs(pointBochechaR[0]-pointBochecha[0])
+            # faceDir = -np.arctan2(int(pointQueixo[1]-pointTestaCima[1]), int(pointQueixo[0]-pointTestaCima[0]))
+            faceDir = np.arctan2(int(pointQueixo[0]-pointTestaCima[0]), int(pointQueixo[1]-pointTestaCima[1]))
+            print(f"face dir {faceDir / np.pi * 180}")
+            def getPointNewPos(id: int):
+                x, y = getPointPos(id)
+                # cv2.circle(imgConfig, (x, y), 2, (0, 0, 255), 2)
+                newxtrans = x-pointQueixo[0]
+                newytrans = y-pointQueixo[1]
+                
+                
+                cosdir = np.cos(faceDir)
+                sindir = np.sin(faceDir)
+
+                newxrot = newxtrans * cosdir - newytrans * sindir
+                newyrot = newxtrans * sindir + newytrans * cosdir
+                
+                newxnorm = newxrot / faceWidth
+                newynorm = newyrot / faceHeight
+                
+                newx = newxnorm
+                newy = newynorm
+
+                cv2.circle(imgConfig, (int(pointQueixo[0]+newx*faceWidth), int(pointQueixo[1]+newy*faceHeight)), 2, (0, 0, 255), 2)
+
+                return int(size/2 + newx*5*faceWidth), int(size + newy*5*faceHeight)
+
+            idSee += .12
+            # print(f"id see {idSee}")
+            cv2.circle(imgConfig, getPointPos(int(idSee)), 2, (0, 0, 255), 2)
+            # pointOlhoLCima = getPointPos(idOlhoLCima)
+            # pointOlhoLBaixo = getPointPos(idOlhoLBaixo)
+            # pointOlhoRCima = getPointPos(idOlhoRCima)
+            # pointOlhoRBaixo = getPointPos(idOlhoRBaixo)
+
+            pointOlhoLCima = getPointNewPos(idOlhoLCima)
+            pointOlhoLBaixo = getPointNewPos(idOlhoLBaixo)
+            pointOlhoLEsquerda = getPointNewPos(idOlhoLEsquerda)
+            pointOlhoLDireita = getPointNewPos(idOlhoLDireita)
+
+            pointOlhoRCima = getPointNewPos(idOlhoRCima)
+            pointOlhoRBaixo = getPointNewPos(idOlhoRBaixo)
+            pointOlhoREsquerda = getPointNewPos(idOlhoREsquerda)
+            pointOlhoRDireita = getPointNewPos(idOlhoRDireita)
+
+
+            olhoaddx, olhoaddy, olhosepx = (150, 0, 0) 
+
+            pointOlhoLCima = tuple(x + y for x, y in zip(pointOlhoLCima, (olhoaddx-olhosepx, olhoaddy))) 
+            pointOlhoLBaixo = tuple(x + y for x, y in zip(pointOlhoLBaixo, (olhoaddx-olhosepx, olhoaddy))) 
+            pointOlhoLEsquerda = tuple(x + y for x, y in zip(pointOlhoLEsquerda, (olhoaddx-olhosepx, olhoaddy))) 
+            pointOlhoLDireita = tuple(x + y for x, y in zip(pointOlhoLDireita, (olhoaddx-olhosepx, olhoaddy))) 
+
+            pointOlhoRCima = tuple(x + y for x, y in zip(pointOlhoRCima, (olhoaddx+olhosepx, olhoaddy))) 
+            pointOlhoRBaixo = tuple(x + y for x, y in zip(pointOlhoRBaixo, (olhoaddx+olhosepx, olhoaddy))) 
+            pointOlhoREsquerda = tuple(x + y for x, y in zip(pointOlhoREsquerda, (olhoaddx+olhosepx, olhoaddy))) 
+            pointOlhoRDireita = tuple(x + y for x, y in zip(pointOlhoRDireita, (olhoaddx+olhosepx, olhoaddy))) 
+
+            # print(f"olho left cima {pointOlhoLCima[0]} {pointOlhoLCima[1]}")
+            # print(f"olho right cima {pointOlhoRCima}")
+
+            pointBocaL = getPointNewPos(idBocaL)
+            pointBocaR = getPointNewPos(idBocaR)
+            pointBocaD = getPointNewPos(idBocaD)
+            pointBocaU = getPointNewPos(idBocaU)
+            # pointBocaLeft = 
+            bocaaddx, bocaddy = (150, 0)
+            pointBocaL = tuple(x + y for x, y in zip(pointBocaL, (bocaaddx, bocaddy))) 
+            pointBocaR = tuple(x + y for x, y in zip(pointBocaR, (bocaaddx, bocaddy))) 
+            pointBocaD = tuple(x + y for x, y in zip(pointBocaD, (bocaaddx, bocaddy))) 
+            pointBocaU = tuple(x + y for x, y in zip(pointBocaU, (bocaaddx, bocaddy))) 
+
+
+            # print(f"facedir {faceDir}")
+            newpointTestaBaixo = getPointNewPos(idTestaBaixo)
+            newpointTestaCima = getPointNewPos(idTestaCima)
+            newpointBochecha = getPointNewPos(idBochecha)
+            def getY(y):
+                return int((y-newpointTestaCima[1]))
+            yTestaBaixo = getY(newpointTestaBaixo[1])
+            yBochecha = getY(newpointBochecha[1])
+            # yOlhoL = getY(pointOlhoLCima[1])
+            # yOlhoR = getY(pointOlhoRCima[1])
+            # yOlhoM = (yOlhoL+yOlhoR)/2
+            # yOlhoL = yOlhoM + (yOlhoL-yOlhoM)*faceDir
+            # yOlhoR = yOlhoM - (yOlhoR-yOlhoM)*faceDir
+            
+
+            # yBoca = getY((pointBocaD[1]+pointBocaU[1])/2)
+            # print(f"{yTestaBaixo} {yBochecha}")
+
+
+            # srcPoints = np.array([detector.getPointPositionById(i, faces_landmarks[0], imgWebcam) for i in points], dtype=np.float32)
+            # dstPoints = np.array([
+            #     [0, 0],
+            #     [size-1, 0],
+            #     [size-1, size-1],
+            #     [0, size-1]
+            # ])
+            # imgPreview = imgWebcam.copy()
+            imgPreview = cv2.resize(imgWebcam, (size, size))
+            # M, mask = cv2.findHomography(srcPoints, dstPoints, method=0)
+            # imgPreview = cv2.warpPerspective(imgWebcam, M, (size, size))
+            cv2.fillPoly(imgPreview, [np.array([(0,0), (int(size*.9), 0), (size-1, int(yTestaBaixo)), (int(size-1), int(yBochecha)), (int(size*.8), size-1), (0, size-1)])], (0,235,255))
+            cv2.putText(imgPreview, f"ytestabaixo {yTestaBaixo} ybochecha {yBochecha}", (20, 60), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 0))
+            def drawCircle(pos: cv2.typing.Point, radius=10, color=(0,0,0)):
+                cv2.circle(imgPreview, pos, 0, color, radius)
+            
+            # drawCircle(pointOlhoLCima)
+            # drawCircle(pointOlhoLBaixo)
+            olhoRadius = 2
+            olhoLRadius = abs(pointOlhoLBaixo[1]-pointOlhoLCima[1])
+            if olhoLRadius > 50:
+                drawCircle((int((pointOlhoLCima[0]+pointOlhoLBaixo[0])/2), int((pointOlhoLCima[1]+pointOlhoLBaixo[1])/2)), olhoLRadius*olhoRadius)
+            else:
+                cv2.line(imgPreview, pointOlhoLEsquerda, pointOlhoLDireita, (0, 0, 0), 10)
+            # drawCircle(pointOlhoRCima)
+            # drawCircle(pointOlhoRBaixo)
+            olhoRRadius = abs(pointOlhoRBaixo[1]-pointOlhoRCima[1])
+            if olhoRRadius > 50:
+                drawCircle((int((pointOlhoRCima[0]+pointOlhoRBaixo[0])/2), int((pointOlhoRCima[1]+pointOlhoRBaixo[1])/2)), olhoRRadius*olhoRadius)
+            else:
+                pass
+                cv2.line(imgPreview, pointOlhoREsquerda, pointOlhoRDireita, (0, 0, 0), 10)
+            # cv2.ellipse(imgPreview, (300, 300), (20, 0), 0, 20, 180, (0, 0, 255), 10)
+
+            bocaPointMiddle = (int((pointBocaR[0]+pointBocaL[0])/2), int((pointBocaD[1]+pointBocaU[1])/2))
+            bocaRadius = abs(pointBocaD[1]-pointBocaU[1])
+            if bocaRadius > 130:
+                drawCircle(bocaPointMiddle, bocaRadius)
+            else:
+                cv2.line(imgPreview, pointBocaL, pointBocaR, (0,0,0), 20)
+
+            # drawCircle(pointBocaL)
+            # drawCircle(pointBocaR)
+            # drawCircle(pointBocaD)
+            # drawCircle(pointBocaU)
+
+            # drawCircle(pointOlhoLBaixo)
+            # drawCircle(pointOlhoRCima)
+            # drawCircle(pointOlhoRBaixo)
+
+            # cv2.line(imgPreview, (int(size*.8), 0), (size-1, int(yTestaBaixo)), (0,0,0), 3)
+            # drawCircle(int(size*.8), 0)
+            # drawCircle(int(size-1), int(yTestaBaixo))
+            # drawCircle(int(size-1), int(yBochecha))
+            # drawCircle(int(size*.7), size-1)
+
+            # drawCircle(int(size/2), int(yOlhoL), 10)
+            # drawCircle(int(size*.75), int(yOlhoR), 10)
+
+            # drawCircle(int(size*.6), int(getY(pointBocaU[1])), 10)
+            # drawCircle(int(size*.6), int(yBoca), 10)
+            # drawCircle(int(size*.6), int(getY(pointBocaD[1])), 10)
+
+            # cv2.circle(imgPreview, (int(size*.8), 0), 3, (0, 0, 255), 2)
+            # cv2.circle(imgPreview, (int(size-1), int(yTestaBaixo)), 3, (0, 0, 255), 2)
+            # cv2.circle(imgPreview, (int(size-1), int(yBochecha)), 3, (0, 0, 255), 2)
+            # cv2.circle(imgPreview, (int(size*.7), size-1), 3, (0, 0, 255), 2)
+
+            
 
             cv2.imshow("preview", imgPreview)
+            cv2.putText(imgConfig, f"faceDir {faceDir/np.pi*180}", (20, 20), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0))
         cv2.imshow("config", imgConfig)
         
-        if frameCount == 0:
-            cv2.setMouseCallback("config", ConfigOnMouse)
-            cv2.setMouseCallback("preview", PreviewOnMouse)
+        # cv2.setMouseCallback("config", ConfigOnMouse)
+        # cv2.setMouseCallback("preview", PreviewOnMouse)
         if cv2.waitKey(5) == 27:
             break
+        
 
     webcam.release()
     cv2.destroyAllWindows()
