@@ -5,15 +5,18 @@ import numpy as np
 class PointAvatar:
     def __init__(self, id, label="") -> None:
         self.id = id
+        self.label = str(id) if label=="" else label
         self.camX = -1
         self.camY = -1
         self.avatarX = -1
         self.avatarY = -1
-        self.label = str(id) if label=="" else label
 
     def setCamPosition(self, x, y):
         self.camX = x
         self.camY = y
+
+    def toPoint(self):
+        return (self.avatarX, self.avatarY)
 
     
 
@@ -41,7 +44,7 @@ class Avatar:
         self.faces_landmarks = faces_landmarks
     def createPoint(self, id, label=""):
         self.points[str(id)] = PointAvatar(id, label)
-    def getPoint(self, id):
+    def getPoint(self, id) -> PointAvatar:
         return self.points[str(id)]   
     
     def updatePointsCam(self):
@@ -52,14 +55,13 @@ class Avatar:
             
             point.camX = camX
             point.camY = camY
-
     def updatePointsAvatar(self):
         for point in self.points.values():
-            (avatarX, avatarY) = self.getPointAvatarPosition(point.id, self.getPoint(152))
-            point.avatarX = avatarX
-            point.avatarY = avatarY
-            cv2.circle(self.imgAvatar, (point.avatarX, point.avatarY), 0, (0,0,255), 5) #type: ignore
-            print(f"avatar x {avatarX} y {avatarY}")
+            (avatarX, avatarY) = self.getPointAvatarPosition(point.id)
+            lerp = .9
+            point.avatarX = int(point.avatarX + (avatarX-point.avatarX) * lerp)
+            point.avatarY = int(point.avatarY + (avatarY-point.avatarY) * lerp)
+            # cv2.circle(self.imgAvatar, (point.avatarX, point.avatarY), 0, (0,0,255), 5) #type: ignore
 
     def createProperty(self, label, fn, ids):
         self.properties[label] = PropertyAvatar(label, fn, ids)
@@ -77,9 +79,11 @@ class Avatar:
         return self.properties[label].value
     
     def getPointCamPosition(self, id: int):
-        return self.detector.getPointPositionById(id, self.faces_landmarks[0], self.imgCam)
+        
+        return self.detector.getPointPositionById(id, self.faces_landmarks[0], self.imgCam) #type: ignore
 
-    def getPointAvatarPosition(self, id, pointOrigin):
+    def getPointAvatarPosition(self, id):
+        pointOrigin = self.getPoint(152)
         (x, y) = self.getPointCamPosition(id)
         faceDir = self.getProperty("faceDir")
         faceH = self.getProperty("faceH")
@@ -100,4 +104,4 @@ class Avatar:
         cv2.circle(self.imgCam, (int(pointOrigin.camX+newxnorm*240), int(pointOrigin.camY+newynorm*240)), 2, (255, 0, 0), 2) #type: ignore
 
         size = 1000
-        return int(size/2 - newxnorm*size), int(size - newynorm*size)
+        return int(size/2 + newxnorm*size), int(size - newynorm*size)

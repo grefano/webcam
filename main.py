@@ -35,7 +35,6 @@ class FaceMeshDetector:
     def getPointByScreenPosition(self, x, y):
         global faces_landmarks
         nearestId, nearestX, nearestY, nearestDist = (-1, -1, -1, -1)
-        print(f"cu {faces_landmarks[0]}")
         for id, landmark in enumerate(faces_landmarks[0].landmark):
             H,W,_ = imgWebcam.shape
             lx, ly = int(landmark.x*W), int(landmark.y*H)
@@ -85,7 +84,7 @@ def PreviewOnMouse(event, x, y, flags, params):
 if __name__ == '__main__':
 
     webcam = cv2.VideoCapture(0)
-    windowConfig = WindowPoints("config", webcam)
+    windowConfig = WindowPoints("config", 'webcam')
     windowPreview = WindowPoints("preview", webcam)
 
     detector = FaceMeshDetector(True, 1, 0.5, 0.5)
@@ -131,25 +130,30 @@ if __name__ == '__main__':
     previousTime = 0    
 
     idSee = 180
+    frameCount = 0
     while True:
         
-        
         _, imgWebcam = webcam.read()
-        H,W,C = imgWebcam.shape
-
-
-        frameSmall = cv2.resize(imgWebcam, (320, 240))
-
-        
-
-        # faces = detector.findFaceMesh(frameSmall)
-        
-        faces_landmarks = detector.faceMesh.process(frameSmall).multi_face_landmarks
-        faces = []
         imgConfig = imgWebcam.copy()
-        imgPreview = cv2.resize(imgConfig, (1000, 1000))
-        avatar.updateImg(imgWebcam, imgPreview, faces_landmarks)
+        imgPreview = np.full((1000, 1000, 3), (0, 255, 0), dtype=np.uint8)
+        if True:
+            
+            H,W,C = imgWebcam.shape
+
+
+            # frameSmall = cv2.resize(imgWebcam, (320, 240))
+            frameSmall = cv2.resize(imgWebcam, (320, 240))
+
+            
+
+            # faces = detector.findFaceMesh(frameSmall)
+            
+            faces_landmarks = detector.faceMesh.process(frameSmall).multi_face_landmarks
+            faces = []
+            # imgPreview = cv2.resize(imgConfig, (1000, 1000))
+            avatar.updateImg(imgWebcam, imgPreview, faces_landmarks)
         
+        frameCount+=1
         currentTime = time.time()
         fps = 1 / (currentTime - previousTime)
         previousTime = currentTime
@@ -167,7 +171,86 @@ if __name__ == '__main__':
             avatar.updatePointsCam()
             avatar.updateProperties()
             avatar.updatePointsAvatar()
+            
 
+
+            headRecoil = 100
+            headTopRecoil = 100+headRecoil
+            chinRecoil = 100+headRecoil
+            cv2.fillPoly(imgPreview, [np.array([(0, headRecoil), (0, 999), (999-chinRecoil, 999), (999-headRecoil, 700+headRecoil), (999-headRecoil, 150+headRecoil), (999-headTopRecoil, headRecoil)])], (0, 255, 255))
+
+            #desenhando pontos
+            def getMiddlePoint(ids):
+                points = []
+                for id in ids:
+                    points.append(avatar.getPoint(id).toPoint())
+                sumX = 0
+                sumY = 0
+                for point in points:
+                    sumX += point[0]
+                    sumY += point[1]
+
+                return (int(sumX/len(points)), int(sumY/len(points)))
+            def getMiddlePointExt(xIds, yIds):
+                xPoints = []
+                yPoints = []
+                for id in xIds:
+                    xPoints.append(avatar.getPoint(id).toPoint())
+                for id in yIds:
+                    yPoints.append(avatar.getPoint(id).toPoint())
+                sumX = 0
+                sumY = 0
+                for point in xPoints:
+                    sumX += point[0]
+                for point in yPoints:
+                    sumY += point[1]
+
+                return (int(sumX/len(xPoints)), int(sumY/len(yPoints)))
+            def getPointDistance(id1, id2):
+                point1 = avatar.getPoint(id1).toPoint()
+                point2 = avatar.getPoint(id2).toPoint()
+                return np.sqrt((point2[0]-point1[0])**2 + (point2[1]-point1[1])**2)
+
+
+            def drawOlho(idLeft, idRight, idUp, idDown):
+                addx, addy = 200, 100
+
+                olhoRadiusMult = 2
+                blinkLineThickness = 12
+                blinkBound = .25
+
+                olhoSize = abs(avatar.getPoint(idDown).avatarY - avatar.getPoint(idUp).avatarY)
+                olhoRatio = getPointDistance(idDown, idUp) / getPointDistance(idRight, idLeft)
+                if (olhoRatio) > blinkBound:
+                    (x, y) = getMiddlePointExt([idRight, idLeft], [idUp, idDown])
+                    cv2.circle(imgPreview, (x+addx, y+addy), 0, (0,0,0), olhoSize*olhoRadiusMult)
+                else:
+                    (xl, yl) = avatar.getPoint(idLeft).toPoint()
+                    (xr, yr) = avatar.getPoint(idRight).toPoint()
+                    cv2.line(imgPreview, (xl + addx, yl + addy), (xr + addx, yr + addy), (0,0,0), blinkLineThickness)  
+
+            drawOlho(173, 130, 159, 23)
+            drawOlho(463, 359, 253, 386)
+
+            def drawBoca(idLeft, idRight, idUp, idDown):
+                addx, addy = 100, 100
+                bocaRadiusMult = .01
+                speakLineThickness = 36
+                speakBound = .55
+                smileBound = 350
+                bocaW = getPointDistance(idRight, idLeft)
+                bocaSize = abs(avatar.getPoint(idDown).avatarY - avatar.getPoint(idUp).avatarY)
+                bocaRatio = getPointDistance(idDown, idUp) / bocaW
+                print(f"boca ratio {bocaRatio}")
+                if bocaW > smileBound:
+                    cv2.line(imgPreview, tuple(p+addx for p in avatar.getPoint(idLeft).toPoint()), tuple(p+addx for p in avatar.getPoint(idRight).toPoint()), (0,0,0), speakLineThickness*3) 
+                elif (bocaRatio) > speakBound:
+                    cv2.circle(imgPreview, tuple(p+addx for p in getMiddlePointExt([idRight, idLeft], [idUp, idDown])), 0, (0,0,0), int((bocaSize**1.9)*bocaRadiusMult))
+                else:
+                    cv2.line(imgPreview, tuple(p+addx for p in avatar.getPoint(idLeft).toPoint()), tuple(p+addx for p in avatar.getPoint(idRight).toPoint()), (0,0,0), speakLineThickness) 
+             
+            drawBoca(291, 61, 0, 17)
+            
             detector.mpDraw.draw_landmarks(
                 image=imgConfig,
                 landmark_list=faces_landmarks[0],
