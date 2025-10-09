@@ -88,16 +88,16 @@ class Avatar:
         newytrans = y-pointOrigin.camY
         
         
-        cosdir = np.cos(faceDir)
-        sindir = np.sin(faceDir)
+        cosdir = np.cos(-faceDir)
+        sindir = np.sin(-faceDir)
 
         newxrot = newxtrans * cosdir - newytrans * sindir
         newyrot = newxtrans * sindir + newytrans * cosdir
-        
+
         newxnorm = newxrot / faceH #div / (faceHeight/H)#
         newynorm = newyrot / faceH
 
-        cv2.circle(self.imgCam, (int(pointOrigin.camX+newxnorm*240), int(pointOrigin.camY+newynorm*240)), 2, (0, 0, 255), 2) #type: ignore
+        cv2.circle(self.imgCam, (int(pointOrigin.camX+newxnorm*240), int(pointOrigin.camY+newynorm*240)), 2, (255, 0, 0), 2) #type: ignore
 
         size = 1000
         return int(size/2 - newxnorm*size), int(size - newynorm*size)
