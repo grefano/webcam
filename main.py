@@ -2,19 +2,17 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import time
-
-import threading
-import queue
+import pygame
+import sys
 from avatar import Avatar 
 from facemeshdetector import FaceMeshDetector
 from draw import *
+from starting import ScreenWaiting
 class Point:
     def __init__(self, id, x, y):
         self.id = id
         self.x = x
         self.y = y
-
-
 
 
 class Window:
@@ -51,6 +49,8 @@ class WindowPoints(Window):
 #         (id, x, y, dist) = detector.getPointByScreenPosition(x, y)
 
 
+
+
 if __name__ == '__main__':
 
     webcam = cv2.VideoCapture(0)
@@ -58,7 +58,8 @@ if __name__ == '__main__':
     windowPreview = WindowPoints("preview", webcam)
     detector = FaceMeshDetector(True, 1, 0.5, 0.5)
     avatar = Avatar(detector)
-
+    screenWaiting = ScreenWaiting(avatar)
+    screenWaiting.start()
 
 
     
@@ -168,8 +169,8 @@ if __name__ == '__main__':
             headRecoil = 100
             headTopRecoil = 100+headRecoil
             chinRecoil = 100+headRecoil
-            cv2.fillPoly(imgPreview, [np.array([(0, headRecoil), (0, 999), (999-chinRecoil, 999), (999-headRecoil, 700+headRecoil), (999-headRecoil, 150+headRecoil), (999-headTopRecoil, headRecoil)])], (0, 255, 255))
-
+            # cv2.fillPoly(imgPreview, [np.array([(0, headRecoil), (0, 999), (999-chinRecoil, 999), (999-headRecoil, 700+headRecoil), (999-headRecoil, 150+headRecoil), (999-headTopRecoil, headRecoil)])], (0, 255, 255))
+            cv2.fillPoly(imgPreview, [np.array([(0,0), (999,0), (999,999), (0,999)])], (255,255,255))
             #desenhando pontos
             
             drawOlho(173, 130, 159, 23, avatar, imgPreview)
@@ -178,25 +179,19 @@ if __name__ == '__main__':
 
             drawBoca(291, 61, 0, 17, avatar, imgPreview)
             
-            # detector.mpDraw.draw_landmarks(
-            #     image=imgConfig,
-            #     landmark_list=avatar.faces_landmarks[0],
-            #     connections=detector.mpFaceMesh.FACEMESH_TESSELATION,
-            #     landmark_drawing_spec=None,
-            #     connection_drawing_spec=detector.mpDrawingStyles.get_default_face_mesh_tesselation_style()
-            # )
 
             cv2.imshow("preview", imgPreview)
             cv2.putText(imgConfig, f"faceDir {avatar.getProperty('faceDir')/np.pi*180}", (20, 20), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0))
             # cv2.putText(imgConfig, f"face {faceWidth+faceHeight}", (20, 50), cv2.FONT_HERSHEY_PLAIN, 1, (0, 0, 0))
+
         cv2.imshow("config", imgConfig)
         
         # cv2.setMouseCallback("config", ConfigOnMouse)
         # cv2.setMouseCallback("preview", PreviewOnMouse)
         if cv2.waitKey(5) == 27:
             break
-        
     detector.stop()
+    # screenWaiting.stop()
     webcam.release()
     cv2.destroyAllWindows()
 
