@@ -38,6 +38,7 @@ class Avatar:
         self.imgAvatar = None
         self.detector = detector
         self.faces_landmarks = []
+
     def updateImg(self, imgCam, imgAvatar, faces_landmarks):
         self.imgCam = imgCam
         self.imgAvatar = imgAvatar
